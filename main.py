@@ -1,5 +1,6 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from database import supabase, hash_password, verify_password, create_jwt, verify_jwt
 
@@ -21,6 +22,11 @@ app.add_middleware(
 )
 
 security = HTTPBearer()
+
+# Pydantic model for the login request
+class LoginRequest(BaseModel):
+    username: str
+    password: str
 
 @app.get("/")
 def read_root():
@@ -60,20 +66,26 @@ async def signup(username: str, password: str):
 
     return {"message": "User created successfully"}
 
-# User login
 @app.post("/login")
-async def login(username: str, password: str):
+async def login(login_data: LoginRequest):
+    username = login_data.username
+    password = login_data.password
+
+    # Fetch user from Supabase
     response = supabase.table("users").select("*").eq("username", username).execute()
 
-    # Fix: Properly check for errors and missing data
-    if not response.data or isinstance(response, dict) and "error" in response and response["error"]:
+    # Check if user exists or there was an error
+    if not response.data or "error" in response:
         raise HTTPException(status_code=400, detail="Invalid username or password")
 
-    user = response.data[0]  
+    user = response.data[0]  # Assuming the user is found
+
+    # Verify the password
     if not verify_password(password, user["password"]):
         raise HTTPException(status_code=400, detail="Invalid username or password")
 
-    token = create_jwt(username)  # Generate JWT token
+    # Generate JWT token
+    token = create_jwt(username)
     return {"message": "Login successful", "token": token}
 
 
