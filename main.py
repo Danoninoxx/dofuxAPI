@@ -69,7 +69,7 @@ async def signup(username: str, password: str):
 @app.post("/login")
 async def login(login_data: LoginRequest):
     username = login_data.username
-    password = login_data.password
+    password = hash_password(login_data.password)
 
     # Fetch user from Supabase
     response = supabase.table("users").select("*").eq("username", username).execute()
