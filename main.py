@@ -1,8 +1,24 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.middleware.cors import CORSMiddleware
 from database import supabase, hash_password, verify_password, create_jwt, verify_jwt
 
 app = FastAPI()
+
+# Define allowed origins
+origins = [
+    "http://localhost:4200",  # Allow the Angular frontend running locally
+    "https://https://dofuxapi.onrender.com",  # Add other allowed origins as needed
+]
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # Specifies which origins are allowed
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allow all headers
+)
 
 security = HTTPBearer()
 
