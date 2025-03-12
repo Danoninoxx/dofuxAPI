@@ -26,8 +26,11 @@ async def get_users():
 @app.post("/users")
 async def create_user(name: str, password: str):
     response = supabase.table("users").insert({"username": name, "password": password}).execute()
-    if response.error:
-        raise HTTPException(status_code=500, detail=response.error.message)
+
+    # Fix: Check if response contains an error
+    if isinstance(response, dict) and "error" in response and response["error"]:
+        raise HTTPException(status_code=500, detail=response["error"]["message"])
+
     return {"message": "User created", "username": response.data}
 
 # User signup
@@ -35,17 +38,19 @@ async def create_user(name: str, password: str):
 async def signup(username: str, password: str):
     hashed_password = hash_password(password)  # Hash before storing
     response = supabase.table("users").insert({"username": username, "password": hashed_password}).execute()
-    if response.error:
-        raise HTTPException(status_code=500, detail=response.error.message)
-    return {"message": "User created successfully"}
 
+    if isinstance(response, dict) and "error" in response and response["error"]:
+        raise HTTPException(status_code=500, detail=response["error"]["message"])
+
+    return {"message": "User created successfully"}
 
 # User login
 @app.post("/login")
 async def login(username: str, password: str):
     response = supabase.table("users").select("*").eq("username", username).execute()
 
-    if response.error or not response.data:
+    # Fix: Properly check for errors and missing data
+    if not response.data or isinstance(response, dict) and "error" in response and response["error"]:
         raise HTTPException(status_code=400, detail="Invalid username or password")
 
     user = response.data[0]  
@@ -54,6 +59,7 @@ async def login(username: str, password: str):
 
     token = create_jwt(username)  # Generate JWT token
     return {"message": "Login successful", "token": token}
+
 
 # Protected route (JWT authentication required)
 
