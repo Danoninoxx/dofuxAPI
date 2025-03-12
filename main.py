@@ -13,10 +13,14 @@ def read_root():
 # Fetch all users from Supabase
 @app.get("/users")
 async def get_users():
-    response = supabase.table("users").select("username").execute()
-    if response.error:
-        raise HTTPException(status_code=500, detail=response.error.message)
-    return response.data
+    response = supabase.table("users").select("*").execute()
+
+    # Ensure response follows correct structure
+    if isinstance(response, dict) and "error" in response:
+        raise HTTPException(status_code=500, detail=response["error"])
+
+    return response.data  # This correctly returns the user data
+
 
 # Insert a new user into Supabase
 @app.post("/users")
