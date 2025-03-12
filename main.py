@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
@@ -9,7 +9,7 @@ app = FastAPI()
 # Define allowed origins
 origins = [
     "http://localhost:4200",  # Allow the Angular frontend running locally
-    "https://https://dofuxapi.onrender.com",  # Add other allowed origins as needed
+    "https://dofuxapi.onrender.com",  # Corrected CORS allowed origin
 ]
 
 # Add CORS middleware
@@ -69,7 +69,7 @@ async def signup(username: str, password: str):
 @app.post("/login")
 async def login(login_data: LoginRequest):
     username = login_data.username
-    password = hash_password(login_data.password)
+    password = login_data.password  # Do not hash the password here
 
     # Fetch user from Supabase
     response = supabase.table("users").select("*").eq("username", username).execute()
@@ -80,7 +80,7 @@ async def login(login_data: LoginRequest):
 
     user = response.data[0]  # Assuming the user is found
 
-    # Verify the password
+    # Verify the password against the hashed password
     if not verify_password(password, user["password"]):
         raise HTTPException(status_code=400, detail="Invalid username or password")
 
