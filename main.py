@@ -8,8 +8,8 @@ app = FastAPI()
 
 # Define allowed origins
 origins = [
-    "http://localhost:4200",  # Allow the Angular frontend running locally
-    "https://dofuxapi.onrender.com",  # Corrected CORS allowed origin
+    "http://localhost:4200",
+    "https://dofuxapi.onrender.com",
 ]
 
 # Add CORS middleware
@@ -23,7 +23,6 @@ app.add_middleware(
 
 security = HTTPBearer()
 
-# Pydantic model for the login request
 class LoginRequest(BaseModel):
     username: str
     password: str
