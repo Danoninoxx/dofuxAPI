@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Body
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
@@ -56,7 +56,7 @@ async def create_user(name: str, password: str):
 
 # User signup
 @app.post("/signup")
-async def signup(username: str, password: str):
+async def signup(username: str = Body(...), password: str = Body(...)):
     hashed_password = hash_password(password)  # Hash before storing
     response = supabase.table("users").insert({"username": username, "password": hashed_password}).execute()
 
