@@ -63,7 +63,8 @@ async def signup(username: str = Body(...), password: str = Body(...)):
     if isinstance(response, dict) and "error" in response and response["error"]:
         raise HTTPException(status_code=500, detail=response["error"]["message"])
 
-    return {"message": "User created successfully"}
+    token = create_jwt(username)
+    return {"message": "User created successfully", "token": token}
 
 @app.post("/login")
 async def login(login_data: LoginRequest):
