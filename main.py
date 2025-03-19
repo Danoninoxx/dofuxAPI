@@ -86,7 +86,7 @@ async def login(login_data: LoginRequest):
 
     # Generate JWT token
     token = create_jwt(username)
-    return {"message": "Login successful", "token": token}
+    return {"message": "Login successful", "token": token, "admin": user["admin"]}
 
 
 # Protected route (JWT authentication required)
