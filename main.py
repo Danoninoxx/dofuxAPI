@@ -58,7 +58,7 @@ async def create_user(name: str, password: str):
 @app.post("/signup")
 async def signup(username: str = Body(...), password: str = Body(...)):
     hashed_password = hash_password(password)  # Hash before storing
-    response = supabase.table("users").insert({"username": username, "password": hashed_password}).execute()
+    response = supabase.table("users").insert({"username": username, "password": hashed_password, "admin": False}).execute()
 
     if isinstance(response, dict) and "error" in response and response["error"]:
         raise HTTPException(status_code=500, detail=response["error"]["message"])
