@@ -69,7 +69,7 @@ async def signup(username: str = Body(...), password: str = Body(...)):
 @app.post("/login")
 async def login(login_data: LoginRequest):
     username = login_data.username
-    password = login_data.password  # Do not hash the password here
+    password = login_data.password
 
     # Fetch user from Supabase
     response = supabase.table("users").select("*").eq("username", username).execute()
@@ -88,6 +88,20 @@ async def login(login_data: LoginRequest):
     token = create_jwt(username)
     return {"message": "Login successful", "token": token, "admin": user["admin"]}
 
+@app.get("/clases")
+async def get_clases():
+    # Makes the query for table "clases"
+    response = supabase.table("clases").select("*").execute()
+
+    # Verify if there was an error
+    if isinstance(response, dict) and "error" in response and response["error"]:
+        raise HTTPException(
+            status_code=500, 
+            detail=response["error"]["message"]
+        )
+
+    # Return the data
+    return response.data
 
 # Protected route (JWT authentication required)
 
