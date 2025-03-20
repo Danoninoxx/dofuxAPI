@@ -3,6 +3,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from database import supabase, hash_password, verify_password, create_jwt, verify_jwt
+from typing import Optional
 
 app = FastAPI()
 
@@ -26,6 +27,18 @@ security = HTTPBearer()
 class LoginRequest(BaseModel):
     username: str
     password: str
+
+class ClaseCreate(BaseModel):
+    title: str
+    class_logo: Optional[str] = None
+    short_desc: Optional[str] = None
+    description: Optional[str] = None
+
+class ClaseUpdate(BaseModel):
+    title: Optional[str] = None
+    class_logo: Optional[str] = None
+    short_desc: Optional[str] = None
+    description: Optional[str] = None
 
 @app.get("/")
 def read_root():
@@ -113,9 +126,52 @@ async def get_clase(id: int):
     # Devuelve el primer registro (suponiendo que id sea único)
     return response.data[0]
 
+@app.post("/clases")
+async def create_clase(clase_data: ClaseCreate):
+    # Convertir los datos a dict
+    data_dict = clase_data.model_dump(exclude_unset=True)
+
+    response = supabase.table("clases").insert(data_dict).execute()
+
+    if isinstance(response, dict) and "error" in response and response["error"]:
+        raise HTTPException(status_code=500, detail=response["error"]["message"])
+
+    return {"message": "Clase creada con éxito", "data": response.data}
+
+@app.put("/clases/{id}")
+async def update_clase(id: int, clase_data: ClaseUpdate):
+    data_dict = clase_data.model_dump(exclude_unset=True)
+    
+    # Si data_dict está vacío, significa que no hay campos para actualizar
+    if not data_dict:
+        raise HTTPException(status_code=400, detail="No hay campos para actualizar")
+
+    # Verifica que la clase exista (opcional)
+    existing = supabase.table("clases").select("*").eq("id", id).execute()
+    if not existing.data:
+        raise HTTPException(status_code=404, detail="Clase no encontrada")
+
+    response = supabase.table("clases").update(data_dict).eq("id", id).execute()
+    if isinstance(response, dict) and "error" in response and response["error"]:
+        raise HTTPException(status_code=500, detail=response["error"]["message"])
+
+    return {"message": "Clase actualizada con éxito", "data": response.data}
+
+@app.delete("/clases/{id}")
+async def delete_clase(id: int):
+    # Verifica si existe
+    existing = supabase.table("clases").select("*").eq("id", id).execute()
+    if not existing.data:
+        raise HTTPException(status_code=404, detail="Clase no encontrada")
+
+    response = supabase.table("clases").delete().eq("id", id).execute()
+    if isinstance(response, dict) and "error" in response and response["error"]:
+        raise HTTPException(status_code=500, detail=response["error"]["message"])
+
+    return {"message": "Clase eliminada con éxito"}
+
 
 # Protected route (JWT authentication required)
-
 @app.get("/protected")
 async def protected_route(credentials: HTTPAuthorizationCredentials = Depends(security)):
     token = credentials.credentials
