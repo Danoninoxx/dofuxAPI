@@ -103,6 +103,17 @@ async def get_clases():
     # Return the data
     return response.data
 
+@app.get("/clases/{id}")
+async def get_clase(id: int):
+    response = supabase.table("clases").select("*").eq("id", id).execute()
+
+    if not response.data or "error" in response:
+        raise HTTPException(status_code=404, detail="Clase no encontrada")
+
+    # Devuelve el primer registro (suponiendo que id sea único)
+    return response.data[0]
+
+
 # Protected route (JWT authentication required)
 
 @app.get("/protected")
