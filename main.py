@@ -31,12 +31,14 @@ class LoginRequest(BaseModel):
 class ClaseCreate(BaseModel):
     title: str
     class_logo: Optional[str] = None
+    image: Optional[str] = None
     short_desc: Optional[str] = None
     description: Optional[str] = None
 
 class ClaseUpdate(BaseModel):
     title: Optional[str] = None
     class_logo: Optional[str] = None
+    image: Optional[str] = None
     short_desc: Optional[str] = None
     description: Optional[str] = None
 
