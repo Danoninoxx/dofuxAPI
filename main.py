@@ -117,7 +117,7 @@ async def login(login_data: LoginRequest):
 
     # Generate JWT token
     token = create_jwt(username)
-    return {"message": "Login successful", "token": token, "admin": user["admin"]}
+    return {"message": "Login successful", "token": token, "admin": user["admin"], "id": user["id"]}
 
 @app.get("/clases")
 async def get_clases():
