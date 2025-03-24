@@ -42,6 +42,22 @@ class ClaseUpdate(BaseModel):
     short_desc: Optional[str] = None
     description: Optional[str] = None
 
+class Clase(BaseModel):
+    id: int
+    title: str
+
+class PersonajeBase(BaseModel):
+    name: str
+    level: int
+    clase: str # Title de la tabla clase
+
+class PersonajeCreate(PersonajeBase):
+    user_id: int
+
+class Personaje(PersonajeBase):
+    id: int
+    user_id: int
+
 @app.get("/")
 def read_root():
     return {"message": "FastAPI + Supabase"}
@@ -171,6 +187,31 @@ async def delete_clase(id: int):
         raise HTTPException(status_code=500, detail=response["error"]["message"])
 
     return {"message": "Clase eliminada con éxito"}
+
+@app.get("/personajes/{user_id}")
+async def get_personaje(user_id: int):
+    # Busca en la tabla "personajes" donde user_id == user_id
+    response = supabase.table("personajes").select("*").eq("user_id", user_id).execute()
+
+    # Si no hay registros, 404
+    if not response.data:
+        raise HTTPException(status_code=404, detail="No existe personaje para este usuario")
+
+    return response.data[0]  # Devuelve el primer (y único) personaje
+
+@app.post("/personajes")
+async def create_personaje(personaje_data: PersonajeCreate):
+    # Convierte el modelo Pydantic a diccionario
+    data_dict = personaje_data.model_dump()
+    
+    # Inserta en la tabla "personajes"
+    response = supabase.table("personajes").insert(data_dict).execute()
+
+    if isinstance(response, dict) and "error" in response and response["error"]:
+        raise HTTPException(status_code=500, detail=response["error"]["message"])
+
+    # Retornamos el registro creado
+    return response.data[0]
 
 
 # Protected route (JWT authentication required)
