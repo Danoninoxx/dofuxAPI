@@ -213,6 +213,30 @@ async def create_personaje(personaje_data: PersonajeCreate):
     # Retornamos el registro creado
     return response.data[0]
 
+@app.get("/oficios")
+async def get_oficios():
+    # Makes the query for table "clases"
+    response = supabase.table("oficios").select("*").execute()
+
+    # Verify if there was an error
+    if isinstance(response, dict) and "error" in response and response["error"]:
+        raise HTTPException(
+            status_code=500, 
+            detail=response["error"]["message"]
+        )
+
+    # Return the data
+    return response.data
+
+@app.get("/oficios/{id}")
+async def get_oficio(id: int):
+    response = supabase.table("oficios").select("*").eq("id", id).execute()
+
+    if not response.data or "error" in response:
+        raise HTTPException(status_code=404, detail="Oficio no encontrado")
+
+    # Devuelve el primer registro (suponiendo que id sea único)
+    return response.data[0]
 
 # Protected route (JWT authentication required)
 @app.get("/protected")
