@@ -235,7 +235,7 @@ async def get_oficio(id: int):
     if not response.data or "error" in response:
         raise HTTPException(status_code=404, detail="Oficio no encontrado")
 
-    # Devuelve el primer registro (suponiendo que id sea único)
+    # Devuelve el primer registro (suponiendo id sea único)
     return response.data[0]
 
 # Protected route (JWT authentication required)
