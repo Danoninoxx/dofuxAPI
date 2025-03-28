@@ -58,6 +58,11 @@ class Personaje(PersonajeBase):
     id: int
     user_id: int
 
+class OficioLevelUpdate(BaseModel):
+    id_personaje: int
+    id_oficio: int
+    nivel: int
+
 @app.get("/")
 def read_root():
     return {"message": "FastAPI + Supabase"}
@@ -284,7 +289,17 @@ async def create_personaje(personaje_data: PersonajeCreate):
 
     return new_personaje
 
+@app.patch("/oficioslevel")
+async def update_oficio_level(data: OficioLevelUpdate = Body(...)):
+    # Actualiza la tabla "oficios_level" donde coincidan id_personaje e id_oficio
+    response = supabase.table("oficios_level").update({"nivel": data.nivel}) \
+        .eq("id_personaje", data.id_personaje) \
+        .eq("id_oficio", data.id_oficio).execute()
 
+    if isinstance(response, dict) and "error" in response and response["error"]:
+        raise HTTPException(status_code=500, detail=response["error"]["message"])
+
+    return {"message": "Nivel actualizado", "data": response.data}
 
 # Protected route (JWT authentication required)
 @app.get("/protected")
