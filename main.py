@@ -215,7 +215,7 @@ async def create_personaje(personaje_data: PersonajeCreate):
 
 @app.get("/oficios")
 async def get_oficios():
-    # Makes the query for table "clases"
+    # Makes the query for table "oficios"
     response = supabase.table("oficios").select("*").execute()
 
     # Verify if there was an error
@@ -237,6 +237,77 @@ async def get_oficio(id: int):
 
     # Devuelve el primer registro (suponiendo id sea único)
     return response.data[0]
+
+@app.get("/personajes/{user_id}")
+async def get_personaje(user_id: int):
+    # Buscar el personaje con user_id = user_id
+    personaje_resp = supabase.table("personajes").select("*").eq("user_id", user_id).execute()
+    if not personaje_resp.data:
+        raise HTTPException(status_code=404, detail="No existe personaje para este usuario")
+
+    personaje = personaje_resp.data[0]  # personaje encontrado
+
+    # Buscar todos los oficios que tenga este personaje (usamos la PK del personaje: personaje["id"])
+    oficioslevel_resp = supabase.table("oficioslevel") \
+                                .select("*, oficios(*)") \
+                                .eq("id_personaje", personaje["id"]) \
+                                .execute()
+    if "error" in oficioslevel_resp and oficioslevel_resp["error"]:
+        raise HTTPException(status_code=500, detail=oficioslevel_resp["error"]["message"])
+
+    # Construir un array de { id_oficio, oficio_name, nivel } a partir de la respuesta
+    oficios_list = []
+    for row in oficioslevel_resp.data:
+        # row contiene: {"id", "id_personaje", "id_oficio", "nivel", "oficios": {...}}
+        oficio_data = row["oficios"]  # Este es el objeto proveniente de la tabla "oficios"
+        if oficio_data:
+            oficios_list.append({
+                "id_oficio": row["id_oficio"],
+                "oficio_name": oficio_data["oficio_name"],
+                "nivel": row["nivel"]
+            })
+
+    # Agregar este array al objeto del personaje y devolverlo
+    personaje["oficios"] = oficios_list
+    return personaje
+
+@app.post("/personajes")
+async def create_personaje(personaje_data: PersonajeCreate):
+    # Insertar el nuevo personaje en la tabla "personajes"
+    data_dict = personaje_data.model_dump()
+    response = supabase.table("personajes").insert(data_dict).execute()
+
+    if isinstance(response, dict) and "error" in response and response["error"]:
+        raise HTTPException(status_code=500, detail=response["error"]["message"])
+
+    # El personaje recién creado (incluye "id", "user_id", etc.)
+    new_personaje = response.data[0]
+
+    # Obtener la lista de todos los oficios
+    oficios_resp = supabase.table("oficios").select("id").execute()
+    if isinstance(oficios_resp, dict) and "error" in oficios_resp and oficios_resp["error"]:
+        raise HTTPException(status_code=500, detail=oficios_resp["error"]["message"])
+
+    oficios_list = oficios_resp.data  # Array de { "id": X, "oficio_name": "...", ... }
+
+    # Construir un array de inserciones para la tabla "oficioslevel"
+    inserts = []
+    for oficio in oficios_list:
+        inserts.append({
+            "id_personaje": new_personaje["id"],  # ID del personaje recién creado
+            "id_oficio": oficio["id"],           # ID del oficio
+            "nivel": 1                           # Nivel inicial por defecto
+        })
+
+    # Insertar todas las filas en "oficioslevel"
+    if inserts:
+        oficioslevel_resp = supabase.table("oficioslevel").insert(inserts).execute()
+        if isinstance(oficioslevel_resp, dict) and "error" in oficioslevel_resp and oficioslevel_resp["error"]:
+            raise HTTPException(status_code=500, detail=oficioslevel_resp["error"]["message"])
+
+    # Devolver el personaje recién creado
+    return new_personaje
+
 
 # Protected route (JWT authentication required)
 @app.get("/protected")
