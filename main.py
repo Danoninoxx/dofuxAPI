@@ -247,6 +247,7 @@ async def get_personaje(user_id: int):
         oficio_data = row["oficios"]
         oficios_list.append({
             "oficio_name": oficio_data["oficio_name"],
+            "id_oficio": oficio_data["id"],
             "nivel": row["nivel"]
         })
 
