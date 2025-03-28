@@ -278,7 +278,7 @@ async def create_personaje(personaje_data: PersonajeCreate):
     for oficio in oficios_list:
         inserts.append({
             "id_personaje": new_personaje["id"],
-            "id_oficio": oficio["id"],
+            "id_oficio": oficio["id_oficio"],
             "nivel": 1
         })
 
