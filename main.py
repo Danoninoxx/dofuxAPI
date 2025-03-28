@@ -280,33 +280,31 @@ async def create_personaje(personaje_data: PersonajeCreate):
     if isinstance(response, dict) and "error" in response and response["error"]:
         raise HTTPException(status_code=500, detail=response["error"]["message"])
 
-    # El personaje recién creado (incluye "id", "user_id", etc.)
     new_personaje = response.data[0]
 
-    # Obtener la lista de todos los oficios
+    # Obtener la lista de todos los oficios existentes
     oficios_resp = supabase.table("oficios").select("id").execute()
     if isinstance(oficios_resp, dict) and "error" in oficios_resp and oficios_resp["error"]:
         raise HTTPException(status_code=500, detail=oficios_resp["error"]["message"])
 
-    oficios_list = oficios_resp.data  # Array de { "id": X, "oficio_name": "...", ... }
+    oficios_list = oficios_resp.data
 
-    # Construir un array de inserciones para la tabla "oficioslevel"
+    # Para cada oficio, insertar un registro en la tabla "oficioslevel" con nivel 1
     inserts = []
     for oficio in oficios_list:
         inserts.append({
-            "id_personaje": new_personaje["id"],  # ID del personaje recién creado
-            "id_oficio": oficio["id"],           # ID del oficio
-            "nivel": 1                           # Nivel inicial por defecto
+            "id_personaje": new_personaje["id"],
+            "id_oficio": oficio["id"],
+            "nivel": 1
         })
 
-    # Insertar todas las filas en "oficioslevel"
     if inserts:
-        oficioslevel_resp = supabase.table("oficioslevel").insert(inserts).execute()
+        oficioslevel_resp = supabase.table("oficios_level").insert(inserts).execute()
         if isinstance(oficioslevel_resp, dict) and "error" in oficioslevel_resp and oficioslevel_resp["error"]:
             raise HTTPException(status_code=500, detail=oficioslevel_resp["error"]["message"])
 
-    # Devolver el personaje recién creado
     return new_personaje
+
 
 
 # Protected route (JWT authentication required)
