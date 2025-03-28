@@ -223,7 +223,7 @@ async def get_personaje(user_id: int):
     personaje = personaje_resp.data[0]  # personaje encontrado
 
     # Buscar todos los oficios que tenga este personaje (usamos la PK del personaje: personaje["id"])
-    oficioslevel_resp = supabase.table("oficioslevel") \
+    oficioslevel_resp = supabase.table("oficios_level") \
                                 .select("*, oficios(*)") \
                                 .eq("id_personaje", personaje["id"]) \
                                 .execute()
