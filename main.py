@@ -215,35 +215,39 @@ async def get_oficio(id: int):
 
 @app.get("/personajes/{user_id}")
 async def get_personaje(user_id: int):
-    # Buscar el personaje con user_id = user_id
+    # 1) Buscar el personaje
     personaje_resp = supabase.table("personajes").select("*").eq("user_id", user_id).execute()
     if not personaje_resp.data:
         raise HTTPException(status_code=404, detail="No existe personaje para este usuario")
+    personaje = personaje_resp.data[0]
 
-    personaje = personaje_resp.data[0]  # personaje encontrado
+    # 2) Buscar en 'oficioslevel' los oficios de ese personaje
+    #    y unirlos con la tabla 'oficios'
+    #    (ya sea con select("*, oficios(*)") si configuras la relación
+    #     o con dos consultas separadas).
+    oficios_resp = supabase.table("oficios_level") \
+                           .select("nivel, oficios!inner(id, oficio_name)") \
+                           .eq("id_personaje", personaje["id"]) \
+                           .execute()
+    # Nota: 'oficios!inner(...)' es la sintaxis de Supabase
+    # para incluir la tabla oficios. Ajusta según tu config.
 
-    # Buscar todos los oficios que tenga este personaje (usamos la PK del personaje: personaje["id"])
-    oficioslevel_resp = supabase.table("oficios_level") \
-                                .select("*, oficios(*)") \
-                                .eq("id_personaje", personaje["id"]) \
-                                .execute()
-    if "error" in oficioslevel_resp and oficioslevel_resp["error"]:
-        raise HTTPException(status_code=500, detail=oficioslevel_resp["error"]["message"])
+    if "error" in oficios_resp and oficios_resp["error"]:
+        raise HTTPException(status_code=500, detail=oficios_resp["error"]["message"])
 
-    # Construir un array de { id_oficio, oficio_name, nivel } a partir de la respuesta
+    # 3) Construir un array de oficios con nivel
     oficios_list = []
-    for row in oficioslevel_resp.data:
-        # row contiene: {"id", "id_personaje", "id_oficio", "nivel", "oficios": {...}}
-        oficio_data = row["oficios"]  # Este es el objeto proveniente de la tabla "oficios"
-        if oficio_data:
-            oficios_list.append({
-                "id_oficio": row["id_oficio"],
-                "oficio_name": oficio_data["oficio_name"],
-                "nivel": row["nivel"]
-            })
+    for row in oficios_resp.data:
+        # row tiene { "nivel": X, "oficios": { "id":..., "oficio_name":... } }
+        oficio_data = row["oficios"]
+        oficios_list.append({
+            "oficio_name": oficio_data["oficio_name"],
+            "nivel": row["nivel"]
+        })
 
-    # Agregar este array al objeto del personaje y devolverlo
+    # 4) Agregar al personaje
     personaje["oficios"] = oficios_list
+
     return personaje
 
 @app.post("/personajes")
