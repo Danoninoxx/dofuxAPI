@@ -302,6 +302,31 @@ async def update_oficio_level(data: OficioLevelUpdate = Body(...)):
 
     return {"message": "Nivel actualizado", "data": response.data}
 
+@app.get("/mazmorras")
+async def get_mazmorras():
+    # Makes the query for table "mazmorras"
+    response = supabase.table("mazmorras").select("*").execute()
+
+    # Verify if there was an error
+    if isinstance(response, dict) and "error" in response and response["error"]:
+        raise HTTPException(
+            status_code=500, 
+            detail=response["error"]["message"]
+        )
+
+    # Return the data
+    return response.data
+
+@app.get("/mazmorras/{id}")
+async def get_mazmorra(id: int):
+    response = supabase.table("mazmorras").select("*").eq("id", id).execute()
+
+    if not response.data or "error" in response:
+        raise HTTPException(status_code=404, detail="Mazmorra no encontrada")
+
+    # Devuelve el primer registro (suponiendo que id sea único)
+    return response.data[0]
+
 # Protected route (JWT authentication required)
 @app.get("/protected")
 async def protected_route(credentials: HTTPAuthorizationCredentials = Depends(security)):
