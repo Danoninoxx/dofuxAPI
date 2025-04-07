@@ -327,6 +327,31 @@ async def get_mazmorra(id: int):
     # Devuelve el primer registro (suponiendo que id sea único)
     return response.data[0]
 
+@app.get("/equipamiento")
+async def get_equipamiento():
+    # Makes the query for table "equipamiento"
+    response = supabase.table("equipamiento").select("*").execute()
+
+    # Verify if there was an error
+    if isinstance(response, dict) and "error" in response and response["error"]:
+        raise HTTPException(
+            status_code=500, 
+            detail=response["error"]["message"]
+        )
+
+    # Return the data
+    return response.data
+
+@app.get("/equipamiento/{id}")
+async def get_equipo(id: int):
+    response = supabase.table("equipamiento").select("*").eq("id", id).execute()
+
+    if not response.data or "error" in response:
+        raise HTTPException(status_code=404, detail="Equipo no encontrada")
+
+    # Devuelve el primer registro (suponiendo que id sea único)
+    return response.data[0]
+
 # Protected route (JWT authentication required)
 @app.get("/protected")
 async def protected_route(credentials: HTTPAuthorizationCredentials = Depends(security)):
