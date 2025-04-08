@@ -352,6 +352,32 @@ async def get_equipo(id: int):
     # Devuelve el primer registro (suponiendo que id sea único)
     return response.data[0]
 
+@app.get("/recursos")
+async def get_recursos():
+    # Makes the query for table "recursos"
+    response = supabase.table("recursos").select("*").execute()
+
+    # Verify if there was an error
+    if isinstance(response, dict) and "error" in response and response["error"]:
+        raise HTTPException(
+            status_code=500, 
+            detail=response["error"]["message"]
+        )
+
+    # Return the data
+    return response.data
+
+@app.get("/recursos/{id}")
+async def get_recurso(id: int):
+    response = supabase.table("recursos").select("*").eq("id", id).execute()
+
+    if not response.data or "error" in response:
+        raise HTTPException(status_code=404, detail="Recurso no encontrado")
+
+    # Devuelve el primer registro (suponiendo que id sea único)
+    return response.data[0]
+
+
 # Protected route (JWT authentication required)
 @app.get("/protected")
 async def protected_route(credentials: HTTPAuthorizationCredentials = Depends(security)):
