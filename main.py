@@ -146,12 +146,12 @@ async def get_clase(id: int):
     if not response.data or "error" in response:
         raise HTTPException(status_code=404, detail="Clase no encontrada")
 
-    # Devuelve el primer registro (suponiendo que id sea único)
+    # Return the first record
     return response.data[0]
 
 @app.post("/clases")
 async def create_clase(clase_data: ClaseCreate):
-    # Convertir los datos a dict
+    # Convert the Pydantic model to a dictionary
     data_dict = clase_data.model_dump(exclude_unset=True)
 
     response = supabase.table("clases").insert(data_dict).execute()
@@ -165,11 +165,11 @@ async def create_clase(clase_data: ClaseCreate):
 async def update_clase(id: int, clase_data: ClaseUpdate):
     data_dict = clase_data.model_dump(exclude_unset=True)
     
-    # Si data_dict está vacío, significa que no hay campos para actualizar
+    # If data_dict is empty, raise an error
     if not data_dict:
         raise HTTPException(status_code=400, detail="No hay campos para actualizar")
 
-    # Verifica que la clase exista (opcional)
+    # Verify that the class exists before updating
     existing = supabase.table("clases").select("*").eq("id", id).execute()
     if not existing.data:
         raise HTTPException(status_code=404, detail="Clase no encontrada")
@@ -182,7 +182,7 @@ async def update_clase(id: int, clase_data: ClaseUpdate):
 
 @app.delete("/clases/{id}")
 async def delete_clase(id: int):
-    # Verifica si existe
+    # Verify that the class exists before deleting
     existing = supabase.table("clases").select("*").eq("id", id).execute()
     if not existing.data:
         raise HTTPException(status_code=404, detail="Clase no encontrada")
@@ -215,35 +215,30 @@ async def get_oficio(id: int):
     if not response.data or "error" in response:
         raise HTTPException(status_code=404, detail="Oficio no encontrado")
 
-    # Devuelve el primer registro (suponiendo id sea único)
+    # Return the first record
     return response.data[0]
 
 @app.get("/personajes/{user_id}")
 async def get_personaje(user_id: int):
-    # 1) Buscar el personaje
+    # Search for the user in the 'personajes' table
     personaje_resp = supabase.table("personajes").select("*").eq("user_id", user_id).execute()
     if not personaje_resp.data:
         raise HTTPException(status_code=404, detail="No existe personaje para este usuario")
     personaje = personaje_resp.data[0]
 
-    # 2) Buscar en 'oficioslevel' los oficios de ese personaje
-    #    y unirlos con la tabla 'oficios'
-    #    (ya sea con select("*, oficios(*)") si configuras la relación
-    #     o con dos consultas separadas).
+    # Search for the oficios in the 'oficios_level' table
     oficios_resp = supabase.table("oficios_level") \
                            .select("nivel, oficios!inner(id, oficio_name)") \
                            .eq("id_personaje", personaje["id"]) \
                            .execute()
-    # Nota: 'oficios!inner(...)' es la sintaxis de Supabase
-    # para incluir la tabla oficios. Ajusta según tu config.
 
     if "error" in oficios_resp and oficios_resp["error"]:
         raise HTTPException(status_code=500, detail=oficios_resp["error"]["message"])
 
-    # 3) Construir un array de oficios con nivel
+    # construct the list of oficios
     oficios_list = []
     for row in oficios_resp.data:
-        # row tiene { "nivel": X, "oficios": { "id":..., "oficio_name":... } }
+        # row { "nivel": X, "oficios": { "id":..., "oficio_name":... } }
         oficio_data = row["oficios"]
         oficios_list.append({
             "oficio_name": oficio_data["oficio_name"],
@@ -251,14 +246,14 @@ async def get_personaje(user_id: int):
             "nivel": row["nivel"]
         })
 
-    # 4) Agregar al personaje
+    # Add the oficios to the personaje
     personaje["oficios"] = oficios_list
 
     return personaje
 
 @app.post("/personajes")
 async def create_personaje(personaje_data: PersonajeCreate):
-    # Insertar el nuevo personaje en la tabla "personajes"
+    # Insert the new character into the "personajes" table
     data_dict = personaje_data.model_dump()
     response = supabase.table("personajes").insert(data_dict).execute()
 
@@ -267,14 +262,14 @@ async def create_personaje(personaje_data: PersonajeCreate):
 
     new_personaje = response.data[0]
 
-    # Obtener la lista de todos los oficios existentes
+    # Obtain the list of all "oficios"
     oficios_resp = supabase.table("oficios").select("id").execute()
     if isinstance(oficios_resp, dict) and "error" in oficios_resp and oficios_resp["error"]:
         raise HTTPException(status_code=500, detail=oficios_resp["error"]["message"])
 
     oficios_list = oficios_resp.data
 
-    # Para cada oficio, insertar un registro en la tabla "oficioslevel" con nivel 1
+    # For each oficio, insert into "oficios_level" with nivel 1
     inserts = []
     for oficio in oficios_list:
         inserts.append({
@@ -292,7 +287,7 @@ async def create_personaje(personaje_data: PersonajeCreate):
 
 @app.patch("/oficioslevel")
 async def update_oficio_level(data: OficioLevelUpdate = Body(...)):
-    # Actualiza la tabla "oficios_level" donde coincidan id_personaje e id_oficio
+    # Update the oficio level for the given personaje and oficio
     response = supabase.table("oficios_level").update({"nivel": data.nivel}) \
         .eq("id_personaje", data.id_personaje) \
         .eq("id_oficio", data.id_oficio).execute()
@@ -324,7 +319,7 @@ async def get_mazmorra(id: int):
     if not response.data or "error" in response:
         raise HTTPException(status_code=404, detail="Mazmorra no encontrada")
 
-    # Devuelve el primer registro (suponiendo que id sea único)
+    # Return the first record
     return response.data[0]
 
 @app.get("/equipamiento")
@@ -349,7 +344,7 @@ async def get_equipo(id: int):
     if not response.data or "error" in response:
         raise HTTPException(status_code=404, detail="Equipo no encontrada")
 
-    # Devuelve el primer registro (suponiendo que id sea único)
+    # Return the first record
     return response.data[0]
 
 @app.get("/recursos")
@@ -374,7 +369,32 @@ async def get_recurso(id: int):
     if not response.data or "error" in response:
         raise HTTPException(status_code=404, detail="Recurso no encontrado")
 
-    # Devuelve el primer registro (suponiendo que id sea único)
+    # Return the first record
+    return response.data[0]
+
+@app.get("/bestiario")
+async def get_bestiario():
+    # Makes the query for table "bestiario"
+    response = supabase.table("bestiario").select("*").execute()
+
+    # Verify if there was an error
+    if isinstance(response, dict) and "error" in response and response["error"]:
+        raise HTTPException(
+            status_code=500, 
+            detail=response["error"]["message"]
+        )
+
+    # Return the data
+    return response.data
+
+@app.get("/bestiario/{id}")
+async def get_bestia(id: int):
+    response = supabase.table("bestiario").select("*").eq("id", id).execute()
+
+    if not response.data or "error" in response:
+        raise HTTPException(status_code=404, detail="Bestiario no encontrado")
+
+    # Return the first record
     return response.data[0]
 
 
